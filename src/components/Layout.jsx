@@ -52,8 +52,8 @@ const Layout = ({ children }) => {
                   key={item.name}
                   to={item.path}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${active
-                      ? 'bg-emeraldGreen text-whiteBg shadow-md shadow-emeraldGreen/20'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    ? 'bg-emeraldGreen text-whiteBg shadow-md shadow-emeraldGreen/20'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                     }`}
                 >
                   <Icon className="text-base" />
@@ -64,16 +64,7 @@ const Layout = ({ children }) => {
           </nav>
           {/* User details and Logout button */}
           <div className="flex items-center space-x-3 text-xs md:text-sm">
-            <div className="hidden sm:flex flex-col text-right font-medium text-slate-350">
-              <span className="text-white">Hi, <span className="text-emeraldGreen font-bold uppercase">{user?.username}</span></span>
-              <span className="text-[10px] text-slate-405">
-                {new Date().toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric'
-                })}
-              </span>
-            </div>
+
             <button
               onClick={logout}
               className="px-3 py-1.5 bg-slate-800 hover:bg-red-600 hover:text-white rounded-xl text-xs font-bold text-slate-300 transition-all duration-200 border border-slate-700/60"
@@ -81,7 +72,19 @@ const Layout = ({ children }) => {
             >
               Logout
             </button>
+
+            <div className="hidden sm:flex flex-col text-right font-medium text-slate-350">
+              {/* <span className="text-white">Hi, <span className="text-emeraldGreen font-bold uppercase">{user?.username}</span></span> */}
+              <span className="text-[13px] text-bold text-white text-slate-405">
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+            </div>
           </div>
+
         </div>
       </header>
 
@@ -100,8 +103,8 @@ const Layout = ({ children }) => {
               key={item.name}
               to={item.path}
               className={`flex flex-col items-center justify-center w-16 py-1 rounded-xl transition-all duration-150 ${active
-                  ? 'text-emeraldGreen font-semibold scale-105'
-                  : 'text-slate-400 hover:text-slate-205'
+                ? 'text-emeraldGreen font-semibold scale-105'
+                : 'text-slate-400 hover:text-slate-205'
                 }`}
             >
               <Icon className={`text-xl mb-1 ${active ? 'text-emeraldGreen' : 'text-slate-450'}`} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { FaSearch, FaPlus, FaMinus, FaTrash, FaEdit, FaRupeeSign, FaUser, FaPhoneAlt, FaCheckCircle, FaTimes, FaCalculator } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaMinus, FaTrash, FaEdit, FaRupeeSign, FaUser, FaPhoneAlt, FaCheckCircle, FaTimes, FaCalculator, FaCalendarAlt } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const BillingScreen = () => {
@@ -21,6 +21,7 @@ const BillingScreen = () => {
   const [paymentMode, setPaymentMode] = useState('UPI'); // Default to UPI
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
+  const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Calculator state
   const [showCalculator, setShowCalculator] = useState(false);
@@ -247,7 +248,8 @@ const BillingScreen = () => {
       customerName,
       phone,
       packSize: item.packSize,
-      flavor: item.flavor
+      flavor: item.flavor,
+      date: transactionDate
     }));
 
     const success = await addSale(salesPayload);
@@ -313,8 +315,8 @@ const BillingScreen = () => {
                   setSearchQuery('');
                 }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 ${selectedCategory === cat
-                    ? 'bg-emeraldGreen text-whiteBg shadow-md shadow-emeraldGreen/15'
-                    : 'text-secondaryTxt bg-whiteBg hover:bg-lightgraySec border border-borderCol'
+                  ? 'bg-emeraldGreen text-whiteBg shadow-md shadow-emeraldGreen/15'
+                  : 'text-secondaryTxt bg-whiteBg hover:bg-lightgraySec border border-borderCol'
                   }`}
               >
                 {cat === 'Supplement' ? 'Supplements' : cat === 'Frequent' ? 'Popular' : cat === 'Recent' ? 'Recent' : cat}
@@ -334,19 +336,19 @@ const BillingScreen = () => {
                     type="button"
                     onClick={() => handleAddToCart(p)}
                     className={`p-3.5 rounded-2xl flex flex-col justify-between text-left border transition-all duration-200 min-h-[105px] relative group ${inCartQty > 0
-                        ? isFood
-                          ? 'bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300 shadow-sm'
-                          : 'bg-purple-50 border-purple-300 ring-1 ring-purple-300 shadow-sm'
-                        : isFood
-                          ? 'bg-emerald-50/15 border-emerald-100/50 hover:bg-emerald-50/40 hover:border-emerald-300'
-                          : 'bg-purple-50/15 border-purple-100/50 hover:bg-purple-50/40 hover:border-purple-300'
+                      ? isFood
+                        ? 'bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300 shadow-sm'
+                        : 'bg-purple-50 border-purple-300 ring-1 ring-purple-300 shadow-sm'
+                      : isFood
+                        ? 'bg-emerald-50/15 border-emerald-100/50 hover:bg-emerald-50/40 hover:border-emerald-300'
+                        : 'bg-purple-50/15 border-purple-100/50 hover:bg-purple-50/40 hover:border-purple-300'
                       }`}
                   >
                     {/* Cart Item Quantity Indicator Badge */}
                     {inCartQty > 0 && (
                       <span className={`absolute top-2.5 right-2.5 flex items-center justify-center text-[10px] font-black w-5 h-5 rounded-full shadow-sm animate-scaleIn ${isFood
-                          ? 'bg-emeraldGreen text-white'
-                          : 'bg-purple-650 text-white'
+                        ? 'bg-emeraldGreen text-white'
+                        : 'bg-purple-650 text-white'
                         }`}>
                         {inCartQty}
                       </span>
@@ -354,8 +356,8 @@ const BillingScreen = () => {
 
                     <div className="space-y-1 pr-6">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${isFood
-                          ? 'bg-emerald-100/70 text-emerald-800'
-                          : 'bg-purple-100/70 text-purple-800'
+                        ? 'bg-emerald-100/70 text-emerald-800'
+                        : 'bg-purple-100/70 text-purple-800'
                         }`}>
                         {p.category}
                       </span>
@@ -412,16 +414,16 @@ const BillingScreen = () => {
                       <div
                         key={item.cartId}
                         className={`p-3 rounded-2xl border transition-all duration-150 ${isFood
-                            ? 'bg-emerald-50/30 border-emerald-100 hover:border-emerald-300'
-                            : 'bg-purple-50/20 border-purple-100 hover:border-purple-300'
+                          ? 'bg-emerald-50/30 border-emerald-100 hover:border-emerald-300'
+                          : 'bg-purple-50/20 border-purple-100 hover:border-purple-300'
                           } flex flex-col space-y-2`}
                       >
                         {/* Name & Tag */}
                         <div className="flex justify-between items-start">
                           <div className="space-y-0.5">
                             <span className={`px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase tracking-wide ${isFood
-                                ? 'bg-emerald-100/70 text-emerald-800'
-                                : 'bg-purple-100/70 text-purple-800'
+                              ? 'bg-emerald-100/70 text-emerald-800'
+                              : 'bg-purple-100/70 text-purple-800'
                               }`}>
                               {item.category}
                             </span>
@@ -562,6 +564,28 @@ const BillingScreen = () => {
                 </div>
               )}
 
+              {/* Back-Dating Selector */}
+              <div className="border-t border-borderCol pt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-secondaryTxt font-bold uppercase tracking-wider block">
+                    Transaction Date
+                  </span>
+
+                </div>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-mutedTxt">
+                    <FaCalendarAlt className="text-[10px]" />
+                  </span>
+                  <input
+                    type="date"
+                    required
+                    value={transactionDate}
+                    onChange={(e) => setTransactionDate(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-whiteBg border border-borderCol focus:border-emeraldGreen focus:ring-1 focus:ring-emeraldGreen rounded-xl text-primaryTxt font-semibold"
+                  />
+                </div>
+              </div>
+
               {/* Customer Details Section */}
               <div className="border-t border-borderCol pt-3 space-y-2">
                 <span className="text-[10px] text-secondaryTxt font-bold uppercase tracking-wider">
@@ -607,8 +631,8 @@ const BillingScreen = () => {
                       type="button"
                       onClick={() => setPaymentMode(mode)}
                       className={`py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${paymentMode === mode
-                          ? 'bg-emeraldGreen text-whiteBg shadow-md shadow-emeraldGreen/10'
-                          : 'text-secondaryTxt bg-whiteBg hover:bg-lightgraySec border border-borderCol'
+                        ? 'bg-emeraldGreen text-whiteBg shadow-md shadow-emeraldGreen/10'
+                        : 'text-secondaryTxt bg-whiteBg hover:bg-lightgraySec border border-borderCol'
                         }`}
                     >
                       {mode}
@@ -622,8 +646,8 @@ const BillingScreen = () => {
                 type="submit"
                 disabled={cart.length === 0}
                 className={`w-full py-3 rounded-2xl font-black text-sm transition-all duration-200 flex items-center justify-center space-x-2 ${cart.length > 0
-                    ? 'bg-emeraldGreen hover:bg-emeraldGreenHover text-whiteBg shadow-lg shadow-emeraldGreen/15'
-                    : 'bg-lightgraySec text-mutedTxt cursor-not-allowed border border-borderCol'
+                  ? 'bg-emeraldGreen hover:bg-emeraldGreenHover text-whiteBg shadow-lg shadow-emeraldGreen/15'
+                  : 'bg-lightgraySec text-mutedTxt cursor-not-allowed border border-borderCol'
                   }`}
               >
                 <FaCheckCircle className="text-base" />
@@ -674,8 +698,8 @@ const BillingScreen = () => {
                     </td>
                     <td className="py-3 px-3">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${sale.category === 'Supplement'
-                          ? 'bg-purple-50 text-purple-650'
-                          : 'bg-emerald-50 text-emeraldGreen'
+                        ? 'bg-purple-50 text-purple-650'
+                        : 'bg-emerald-50 text-emeraldGreen'
                         }`}>
                         {sale.category}
                       </span>
@@ -861,8 +885,8 @@ const BillingScreen = () => {
                       type="button"
                       onClick={() => setEditingSale(prev => ({ ...prev, paymentMode: mode }))}
                       className={`py-2 rounded-xl text-xs font-bold transition-all duration-200 ${editingSale.paymentMode === mode
-                          ? 'bg-emeraldGreen text-whiteBg shadow-md'
-                          : 'text-secondaryTxt bg-whiteBg border border-borderCol hover:bg-lightgraySec'
+                        ? 'bg-emeraldGreen text-whiteBg shadow-md'
+                        : 'text-secondaryTxt bg-whiteBg border border-borderCol hover:bg-lightgraySec'
                         }`}
                     >
                       {mode}
@@ -936,15 +960,14 @@ const BillingScreen = () => {
                   key={btn}
                   type="button"
                   onClick={() => handleCalcButtonClick(btn)}
-                  className={`p-2.5 rounded-xl transition-all ${
-                    btn === '='
+                  className={`p-2.5 rounded-xl transition-all ${btn === '='
                       ? 'bg-emeraldGreen text-darknavy hover:bg-emeraldGreenHover font-black text-sm'
                       : isOperator
-                      ? 'bg-slate-800 hover:bg-slate-700 text-emeraldGreen'
-                      : isClear
-                      ? 'bg-slate-850 hover:bg-slate-800 text-red-400'
-                      : 'bg-slate-900 border border-slate-850 hover:bg-slate-800 text-white'
-                  }`}
+                        ? 'bg-slate-800 hover:bg-slate-700 text-emeraldGreen'
+                        : isClear
+                          ? 'bg-slate-850 hover:bg-slate-800 text-red-400'
+                          : 'bg-slate-900 border border-slate-850 hover:bg-slate-800 text-white'
+                    }`}
                 >
                   {btn}
                 </button>
