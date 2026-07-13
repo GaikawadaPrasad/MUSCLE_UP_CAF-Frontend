@@ -245,11 +245,7 @@ export const AppProvider = ({ children }) => {
     try {
       const response = await api.post('/auth/register', { username, password });
       if (response.data.success) {
-        const { token: authToken, data } = response.data;
-        localStorage.setItem('token', authToken);
-        setToken(authToken);
-        setUser(data);
-        toast.success(`Account created! Welcome, ${data.username}!`);
+        toast.success(response.data.message || 'Registration request submitted. Please wait for an administrator to approve your account.');
         return true;
       }
     } catch (error) {
