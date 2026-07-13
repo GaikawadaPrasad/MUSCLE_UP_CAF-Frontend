@@ -10,6 +10,16 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
 
+  // Expenses state
+  const [expenses, setExpenses] = useState([]);
+  const [expenseSummary, setExpenseSummary] = useState({ totalAmount: 0, categoryBreakdown: {} });
+
+  // Auth state
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [usersList, setUsersList] = useState([]);
+
   // Fetch all products
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -169,14 +179,208 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Initialize data on mount
+  // Check auth status
+  const checkAuth = useCallback(async () => {
+    const currentToken = localStorage.getItem('token') || token;
+    if (!currentToken) {
+      setUser(null);
+      setAuthLoading(false);
+      return;
+    }
+    setAuthLoading(true);
+    try {
+      const response = await api.get('/auth/me');
+      if (response.data.success) {
+        setUser(response.data.data);
+      } else {
+        localStorage.removeItem('token');
+        setToken('');
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Auth verification failed:', error);
+      localStorage.removeItem('token');
+      setToken('');
+      setUser(null);
+    } finally {
+      setAuthLoading(false);
+    }
+  }, [token]);
+
+  // Login action
+  const login = async (username, password) => {
+    try {
+      const response = await api.post('/auth/login', { username, password });
+      if (response.data.success) {
+        const { token: authToken, data } = response.data;
+        localStorage.setItem('token', authToken);
+        setToken(authToken);
+        setUser(data);
+        toast.success(`Welcome back, ${data.username}!`);
+        return true;
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+      const errMsg = error.response?.data?.error || 'Login failed';
+      if (errMsg.includes('pending approval')) {
+        toast('Waiting for administrator approval... ⏳', {
+          style: {
+            border: '1px solid #eab308',
+            padding: '12px 18px',
+            color: '#fef08a',
+            background: '#0B1220',
+            fontWeight: 'bold',
+            fontSize: '13px'
+          }
+        });
+      } else {
+        toast.error(errMsg);
+      }
+      return false;
+    }
+  };
+
+  // Register action
+  const register = async (username, password) => {
+    try {
+      const response = await api.post('/auth/register', { username, password });
+      if (response.data.success) {
+        const { token: authToken, data } = response.data;
+        localStorage.setItem('token', authToken);
+        setToken(authToken);
+        setUser(data);
+        toast.success(`Account created! Welcome, ${data.username}!`);
+        return true;
+      }
+    } catch (error) {
+      console.error('Registration failed:', error);
+      toast.error(error.response?.data?.error || 'Registration failed');
+      return false;
+    }
+  };
+
+  // Logout action
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken('');
+    setUser(null);
+    toast.success('Logged out successfully');
+  };
+
+  // Fetch expenses for a specific month (YYYY-MM)
+  const fetchExpenses = useCallback(async (month = '') => {
+    setLoading(true);
+    try {
+      const q = month ? `?month=${month}` : '';
+      const response = await api.get(`/expenses${q}`);
+      if (response.data.success) {
+        setExpenses(response.data.data.expenses);
+        setExpenseSummary(response.data.data.summary);
+      }
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      toast.error('Failed to load expenses');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Add a new expense
+  const addExpense = async (expenseData) => {
+    try {
+      const response = await api.post('/expenses', expenseData);
+      if (response.data.success) {
+        toast.success('Expense recorded successfully!');
+        // Refresh local lists
+        fetchExpenses(expenseData.date.slice(0, 7));
+        return true;
+      }
+    } catch (error) {
+      console.error('Error saving expense:', error);
+      toast.error(error.response?.data?.error || 'Failed to add expense');
+      return false;
+    }
+  };
+
+  // Delete an expense
+  const deleteExpense = async (expenseId, month = '') => {
+    try {
+      const response = await api.delete(`/expenses/${expenseId}`);
+      if (response.data.success) {
+        toast.success('Expense deleted successfully!');
+        fetchExpenses(month);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      toast.error(error.response?.data?.error || 'Failed to delete expense');
+      return false;
+    }
+  };
+
+  // Fetch all users list (Admin only)
+  const fetchUsers = useCallback(async () => {
+    if (!user || user.role !== 'admin') return;
+    try {
+      const response = await api.get('/auth/users');
+      if (response.data.success) {
+        setUsersList(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to load users list');
+    }
+  }, [user]);
+
+  // Approve a pending user (Admin only)
+  const approveUser = async (userId) => {
+    try {
+      const response = await api.put(`/auth/users/${userId}/approve`);
+      if (response.data.success) {
+        toast.success(response.data.message || 'User approved!');
+        fetchUsers();
+        return true;
+      }
+    } catch (error) {
+      console.error('Error approving user:', error);
+      toast.error(error.response?.data?.error || 'Failed to approve user');
+      return false;
+    }
+  };
+
+  // Reject/Delete a user (Admin only)
+  const rejectUser = async (userId) => {
+    try {
+      const response = await api.delete(`/auth/users/${userId}/reject`);
+      if (response.data.success) {
+        toast.success(response.data.message || 'User request rejected');
+        fetchUsers();
+        return true;
+      }
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      toast.error(error.response?.data?.error || 'Failed to reject user');
+      return false;
+    }
+  };
+
+  // Run auth check on mount
   useEffect(() => {
-    fetchProducts();
-    // Default to today's date for sales list
-    const today = new Date().toISOString().split('T')[0];
-    fetchSales({ date: today });
-    fetchDashboardStats();
-  }, [fetchProducts, fetchSales, fetchDashboardStats]);
+    checkAuth();
+  }, [checkAuth]);
+
+  // Fetch data when authenticated
+  useEffect(() => {
+    if (user) {
+      fetchProducts();
+      const today = new Date().toISOString().split('T')[0];
+      fetchSales({ date: today });
+      fetchDashboardStats();
+      if (user.role === 'admin') {
+        fetchUsers();
+      }
+    }
+  }, [user, fetchProducts, fetchSales, fetchDashboardStats, fetchUsers]);
 
   // Separate active products computed property
   const activeProducts = products.filter(p => p.active);
@@ -189,15 +393,31 @@ export const AppProvider = ({ children }) => {
         sales,
         loading,
         dashboardData,
+        expenses,
+        expenseSummary,
+        user,
+        token,
+        authLoading,
+        usersList,
         fetchProducts,
         fetchSales,
         fetchDashboardStats,
+        fetchUsers,
+        fetchExpenses,
         addSale,
         updateSale,
         deleteSale,
         addProduct,
         updateProduct,
-        deleteProduct
+        deleteProduct,
+        addExpense,
+        deleteExpense,
+        login,
+        register,
+        logout,
+        checkAuth,
+        approveUser,
+        rejectUser
       }}
     >
       {children}

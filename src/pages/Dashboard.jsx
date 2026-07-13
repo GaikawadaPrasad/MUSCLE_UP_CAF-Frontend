@@ -27,7 +27,7 @@ ChartJS.register(
 );
 
 const Dashboard = () => {
-  const { dashboardData, fetchDashboardStats, loading } = useApp();
+  const { dashboardData, fetchDashboardStats, loading, user } = useApp();
 
   useEffect(() => {
     fetchDashboardStats();
@@ -184,7 +184,7 @@ const Dashboard = () => {
         <div className="absolute right-0 top-0 w-32 h-32 bg-emeraldGreen/10 rounded-full blur-2xl"></div>
         <div className="space-y-1 relative z-10">
           <h2 className="text-2xl font-extrabold tracking-tight text-white md:text-3xl">
-            Welcome Back, Staff
+            Welcome Back, <span className="capitalize text-emeraldGreen">{user?.username || 'Staff'}</span>
           </h2>
           <p className="text-sm text-slate-300">
             Track daily sales, register orders, and manage cafe operations.

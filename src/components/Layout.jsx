@@ -1,16 +1,23 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaChartBar, FaCalculator, FaCoffee, FaFileInvoiceDollar } from 'react-icons/fa';
+import { FaChartBar, FaCalculator, FaCoffee, FaFileInvoiceDollar, FaUsers, FaWallet } from 'react-icons/fa';
+import { useApp } from '../context/AppContext';
 
 const Layout = ({ children }) => {
   const location = useLocation();
+  const { user, logout } = useApp();
 
   const navigationItems = [
     { name: 'Dashboard', path: '/', icon: FaChartBar },
     { name: 'Billing', path: '/billing', icon: FaCalculator },
     { name: 'Products', path: '/products', icon: FaCoffee },
-    { name: 'Reports', path: '/reports', icon: FaFileInvoiceDollar }
+    { name: 'Reports', path: '/reports', icon: FaFileInvoiceDollar },
+    { name: 'Expenses', path: '/expenses', icon: FaWallet }
   ];
+
+  if (user?.role === 'admin') {
+    navigationItems.push({ name: 'Users', path: '/users', icon: FaUsers });
+  }
 
   const isActive = (path) => {
     if (path === '/') {
@@ -44,11 +51,10 @@ const Layout = ({ children }) => {
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    active
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${active
                       ? 'bg-emeraldGreen text-whiteBg shadow-md shadow-emeraldGreen/20'
                       : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Icon className="text-base" />
                   <span>{item.name}</span>
@@ -56,13 +62,25 @@ const Layout = ({ children }) => {
               );
             })}
           </nav>
-          {/* Quick Date display on top header */}
-          <div className="text-right text-xs md:text-sm text-slate-450 font-medium">
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric'
-            })}
+          {/* User details and Logout button */}
+          <div className="flex items-center space-x-3 text-xs md:text-sm">
+            <div className="hidden sm:flex flex-col text-right font-medium text-slate-350">
+              <span className="text-white">Hi, <span className="text-emeraldGreen font-bold uppercase">{user?.username}</span></span>
+              <span className="text-[10px] text-slate-405">
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+            </div>
+            <button
+              onClick={logout}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-red-600 hover:text-white rounded-xl text-xs font-bold text-slate-300 transition-all duration-200 border border-slate-700/60"
+              type="button"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </header>
@@ -81,11 +99,10 @@ const Layout = ({ children }) => {
             <Link
               key={item.name}
               to={item.path}
-              className={`flex flex-col items-center justify-center w-16 py-1 rounded-xl transition-all duration-150 ${
-                active
+              className={`flex flex-col items-center justify-center w-16 py-1 rounded-xl transition-all duration-150 ${active
                   ? 'text-emeraldGreen font-semibold scale-105'
                   : 'text-slate-400 hover:text-slate-205'
-              }`}
+                }`}
             >
               <Icon className={`text-xl mb-1 ${active ? 'text-emeraldGreen' : 'text-slate-450'}`} />
               <span className="text-[10px] tracking-wide">{item.name}</span>

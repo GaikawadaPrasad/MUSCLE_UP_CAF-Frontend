@@ -23,7 +23,7 @@ const Reports = () => {
     setLoading(true);
     try {
       let url = '/reports/today';
-      
+
       if (filterType === 'yesterday') {
         url = `/reports/date/${yesterdayStr}`;
       } else if (filterType === 'custom') {
@@ -74,14 +74,14 @@ const Reports = () => {
       const primaryColor = [15, 23, 42]; // slate-900 (#0f172a)
       const accentColor = [108, 142, 64]; // brand-500 (#6c8e40)
       const textColor = [51, 65, 85]; // slate-700
-      
+
       // Page setup
       const pageWidth = doc.internal.pageSize.width;
-      
+
       // Header Banner
       doc.setFillColor(...primaryColor);
       doc.rect(0, 0, pageWidth, 40, 'F');
-      
+
       // Accent line
       doc.setFillColor(...accentColor);
       doc.rect(0, 40, pageWidth, 2, 'F');
@@ -91,7 +91,7 @@ const Reports = () => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(22);
       doc.text('MUSCLE UP CAFÉ', 15, 18);
-      
+
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.text('Internal Sales & Billing Report Management', 15, 25);
@@ -156,7 +156,7 @@ const Reports = () => {
       doc.setTextColor(...textColor);
       doc.text(`Food Sales: INR ${summary.categoryBreakdown.Food.toLocaleString('en-IN')}`, 15, 105);
       doc.text(`Supplement Sales: INR ${summary.categoryBreakdown.Supplement.toLocaleString('en-IN')}`, 15, 110);
-      
+
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.setTextColor(...primaryColor);
@@ -187,10 +187,10 @@ const Reports = () => {
 
       // Generate Table Rows
       const tableRows = sales.map((sale, idx) => {
-        const productDetails = sale.category === 'Supplement' 
+        const productDetails = sale.category === 'Supplement'
           ? `${sale.productName} (${sale.packSize} / ${sale.flavor})`
           : sale.productName;
-        const customer = sale.customerName 
+        const customer = sale.customerName
           ? `${sale.customerName} (${sale.phone})`
           : 'Walk-in';
 
@@ -201,6 +201,7 @@ const Reports = () => {
           productDetails,
           sale.quantity,
           `INR ${sale.unitPrice}`,
+          `INR ${sale.discount || 0}`,
           `INR ${sale.totalAmount}`,
           sale.paymentMode,
           customer
@@ -210,7 +211,7 @@ const Reports = () => {
       // Render Table
       autoTable(doc, {
         startY: 140,
-        head: [['S.No', 'Date', 'Time', 'Item Details', 'Qty', 'Unit Price', 'Amount', 'Payment', 'Customer']],
+        head: [['S.No', 'Date', 'Time', 'Item Details', 'Qty', 'Unit Price', 'Discount', 'Amount', 'Payment', 'Customer']],
         body: tableRows,
         theme: 'striped',
         headStyles: {
@@ -278,11 +279,10 @@ const Reports = () => {
         <button
           onClick={generatePDF}
           disabled={sales.length === 0}
-          className={`px-5 py-2.5 rounded-xl font-black text-xs shadow-lg flex items-center justify-center space-x-2 transition-all duration-200 ${
-            sales.length > 0
+          className={`px-5 py-2.5 rounded-xl font-black text-xs shadow-lg flex items-center justify-center space-x-2 transition-all duration-200 ${sales.length > 0
               ? 'bg-emeraldGreen hover:bg-emeraldGreenHover text-whiteBg shadow-md shadow-emeraldGreen/10'
               : 'bg-lightgraySec text-mutedTxt cursor-not-allowed border border-borderCol'
-          }`}
+            }`}
         >
           <FaFilePdf className="text-sm" />
           <span>DOWNLOAD REPORT PDF</span>
@@ -301,11 +301,10 @@ const Reports = () => {
             <button
               key={item.id}
               onClick={() => handleFilterSelect(item.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
-                filterType === item.id
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${filterType === item.id
                   ? 'bg-emeraldGreen text-whiteBg font-black shadow-md'
                   : 'text-secondaryTxt bg-whiteBg border border-borderCol hover:bg-lightgraySec'
-              }`}
+                }`}
             >
               {item.name}
             </button>
@@ -346,7 +345,7 @@ const Reports = () => {
                 </div>
               </div>
             )}
-            
+
             <button
               onClick={fetchReport}
               className="mt-4 sm:mt-0 px-4 py-2 bg-emeraldGreen hover:bg-emeraldGreenHover text-xs font-bold rounded-xl text-whiteBg shadow-sm transition-colors"
@@ -452,6 +451,7 @@ const Reports = () => {
                     <th className="py-3.5 px-4">Item Details</th>
                     <th className="py-3.5 px-3 text-center">Qty</th>
                     <th className="py-3.5 px-3 text-right">Unit Price</th>
+                    <th className="py-3.5 px-3 text-right">Discount</th>
                     <th className="py-3.5 px-3 text-right">Amount</th>
                     <th className="py-3.5 px-3 text-center">Payment</th>
                     <th className="py-3.5 px-4">Customer</th>
@@ -474,6 +474,7 @@ const Reports = () => {
                         </td>
                         <td className="py-3 px-3 text-center font-bold text-primaryTxt">{sale.quantity}</td>
                         <td className="py-3 px-3 text-right font-medium">₹{sale.unitPrice}</td>
+                        <td className="py-3 px-3 text-right font-medium text-red-500">₹{sale.discount || 0}</td>
                         <td className="py-3 px-3 text-right font-bold text-primaryTxt">₹{sale.totalAmount}</td>
                         <td className="py-3 px-3 text-center">
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-whiteBg border border-borderCol text-secondaryTxt">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { FaSearch, FaPlus, FaMinus, FaTrash, FaEdit, FaRupeeSign, FaUser, FaPhoneAlt, FaCheckCircle, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaMinus, FaTrash, FaEdit, FaRupeeSign, FaUser, FaPhoneAlt, FaCheckCircle, FaTimes, FaCalculator } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const BillingScreen = () => {
@@ -21,6 +21,32 @@ const BillingScreen = () => {
   const [paymentMode, setPaymentMode] = useState('UPI'); // Default to UPI
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
+
+  // Calculator state
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calcExpression, setCalcExpression] = useState('');
+  const [calcResult, setCalcResult] = useState('');
+
+  const handleCalcButtonClick = (val) => {
+    if (val === '=') {
+      try {
+        const sanitized = calcExpression.replace(/[^0-9+\-*/().]/g, '');
+        if (sanitized) {
+          const res = Function('"use strict";return (' + sanitized + ')')();
+          setCalcResult(String(res));
+        }
+      } catch (e) {
+        setCalcResult('Error');
+      }
+    } else if (val === 'C') {
+      setCalcExpression('');
+      setCalcResult('');
+    } else if (val === '⌫') {
+      setCalcExpression(prev => prev.slice(0, -1));
+    } else {
+      setCalcExpression(prev => prev + val);
+    }
+  };
 
   // Editing Sale state (Modal)
   const [editingSale, setEditingSale] = useState(null);
@@ -100,6 +126,7 @@ const BillingScreen = () => {
           category: product.category,
           quantity: 1,
           unitPrice: product.price,
+          discount: 0,
           packSize: '',
           flavor: '',
           productRef: product
@@ -114,9 +141,9 @@ const BillingScreen = () => {
       const defaultFlavor = product.flavors && product.flavors.length > 0 ? product.flavors[0] : '';
 
       // Check if same product, pack size and flavor is already in cart
-      const existingIdx = cart.findIndex(item => 
-        item.productId === product._id && 
-        item.packSize === defaultSize && 
+      const existingIdx = cart.findIndex(item =>
+        item.productId === product._id &&
+        item.packSize === defaultSize &&
         item.flavor === defaultFlavor
       );
 
@@ -133,6 +160,7 @@ const BillingScreen = () => {
           category: product.category,
           quantity: 1,
           unitPrice: defaultPrice,
+          discount: 0,
           packSize: defaultSize,
           flavor: defaultFlavor,
           productRef: product
@@ -160,6 +188,12 @@ const BillingScreen = () => {
     setCart(cart.map(item => item.cartId === cartId ? { ...item, unitPrice: val } : item));
   };
 
+  // Update item discount
+  const handleUpdateCartItemDiscount = (cartId, discount) => {
+    const val = Math.max(0, discount);
+    setCart(cart.map(item => item.cartId === cartId ? { ...item, discount: val } : item));
+  };
+
   // Update item pack size
   const handleUpdateCartItemPackSize = (cartId, size) => {
     setCart(cart.map(item => {
@@ -184,7 +218,7 @@ const BillingScreen = () => {
 
   // Calculate cart total
   const cartTotalAmount = useMemo(() => {
-    return cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+    return cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity - (item.discount || 0)), 0);
   }, [cart]);
 
   // Calculate specific product quantities in cart for display badges
@@ -208,6 +242,7 @@ const BillingScreen = () => {
       category: item.category,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
+      discount: item.discount || 0,
       paymentMode,
       customerName,
       phone,
@@ -230,6 +265,7 @@ const BillingScreen = () => {
     const success = await updateSale(editingSale._id, {
       quantity: editingSale.quantity,
       unitPrice: editingSale.unitPrice,
+      discount: editingSale.discount || 0,
       paymentMode: editingSale.paymentMode,
       customerName: editingSale.customerName,
       phone: editingSale.phone,
@@ -245,12 +281,12 @@ const BillingScreen = () => {
     <div className="space-y-6">
       {/* 2-Column Responsive Billing Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
+
         {/* Left Column: Product Search & Quick Grid (Col-Span 7) */}
         <div className="bg-cardBg border border-borderCol rounded-3xl p-5 shadow-sm lg:col-span-7 space-y-4 text-primaryTxt">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h3 className="text-base font-extrabold text-primaryTxt">Menu & Quick Tap</h3>
-            
+
             {/* Search Input */}
             <div className="relative w-full sm:w-64">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-mutedTxt">
@@ -276,11 +312,10 @@ const BillingScreen = () => {
                   setSelectedCategory(cat);
                   setSearchQuery('');
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 ${
-                  selectedCategory === cat
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 ${selectedCategory === cat
                     ? 'bg-emeraldGreen text-whiteBg shadow-md shadow-emeraldGreen/15'
                     : 'text-secondaryTxt bg-whiteBg hover:bg-lightgraySec border border-borderCol'
-                }`}
+                  }`}
               >
                 {cat === 'Supplement' ? 'Supplements' : cat === 'Frequent' ? 'Popular' : cat === 'Recent' ? 'Recent' : cat}
               </button>
@@ -298,33 +333,30 @@ const BillingScreen = () => {
                     key={p._id}
                     type="button"
                     onClick={() => handleAddToCart(p)}
-                    className={`p-3.5 rounded-2xl flex flex-col justify-between text-left border transition-all duration-200 min-h-[105px] relative group ${
-                      inCartQty > 0
+                    className={`p-3.5 rounded-2xl flex flex-col justify-between text-left border transition-all duration-200 min-h-[105px] relative group ${inCartQty > 0
                         ? isFood
                           ? 'bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300 shadow-sm'
                           : 'bg-purple-50 border-purple-300 ring-1 ring-purple-300 shadow-sm'
                         : isFood
                           ? 'bg-emerald-50/15 border-emerald-100/50 hover:bg-emerald-50/40 hover:border-emerald-300'
                           : 'bg-purple-50/15 border-purple-100/50 hover:bg-purple-50/40 hover:border-purple-300'
-                    }`}
+                      }`}
                   >
                     {/* Cart Item Quantity Indicator Badge */}
                     {inCartQty > 0 && (
-                      <span className={`absolute top-2.5 right-2.5 flex items-center justify-center text-[10px] font-black w-5 h-5 rounded-full shadow-sm animate-scaleIn ${
-                        isFood
+                      <span className={`absolute top-2.5 right-2.5 flex items-center justify-center text-[10px] font-black w-5 h-5 rounded-full shadow-sm animate-scaleIn ${isFood
                           ? 'bg-emeraldGreen text-white'
                           : 'bg-purple-650 text-white'
-                      }`}>
+                        }`}>
                         {inCartQty}
                       </span>
                     )}
 
                     <div className="space-y-1 pr-6">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
-                        isFood
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${isFood
                           ? 'bg-emerald-100/70 text-emerald-800'
                           : 'bg-purple-100/70 text-purple-800'
-                      }`}>
+                        }`}>
                         {p.category}
                       </span>
                       <h4 className="text-xs font-bold text-primaryTxt line-clamp-2 mt-1.5 leading-snug">
@@ -335,9 +367,8 @@ const BillingScreen = () => {
                       <span className="text-xs font-black text-primaryTxt">
                         ₹{p.price}{p.category === 'Supplement' && '+'}
                       </span>
-                      <span className={`text-[10px] font-bold transition-colors ${
-                        isFood ? 'text-emeraldGreen' : 'text-purple-650'
-                      }`}>
+                      <span className={`text-[10px] font-bold transition-colors ${isFood ? 'text-emeraldGreen' : 'text-purple-650'
+                        }`}>
                         Add +
                       </span>
                     </div>
@@ -380,20 +411,18 @@ const BillingScreen = () => {
                     return (
                       <div
                         key={item.cartId}
-                        className={`p-3 rounded-2xl border transition-all duration-150 ${
-                          isFood
+                        className={`p-3 rounded-2xl border transition-all duration-150 ${isFood
                             ? 'bg-emerald-50/30 border-emerald-100 hover:border-emerald-300'
                             : 'bg-purple-50/20 border-purple-100 hover:border-purple-300'
-                        } flex flex-col space-y-2`}
+                          } flex flex-col space-y-2`}
                       >
                         {/* Name & Tag */}
                         <div className="flex justify-between items-start">
                           <div className="space-y-0.5">
-                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase tracking-wide ${
-                              isFood
+                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase tracking-wide ${isFood
                                 ? 'bg-emerald-100/70 text-emerald-800'
                                 : 'bg-purple-100/70 text-purple-800'
-                            }`}>
+                              }`}>
                               {item.category}
                             </span>
                             <h4 className="text-xs font-extrabold text-primaryTxt leading-tight mt-1">{item.productName}</h4>
@@ -448,28 +477,40 @@ const BillingScreen = () => {
                             </div>
                           )}
 
-                          {/* Editable unit price and quantity selector */}
-                          <div className={`grid grid-cols-2 gap-2 ${isFood ? 'sm:col-span-2' : 'sm:col-span-2'}`}>
+                          {/* Editable unit price, discount and quantity selector */}
+                          <div className="grid grid-cols-3 gap-2 sm:col-span-2">
                             {/* Editable Price */}
                             <div className="space-y-0.5">
-                              <span className="text-[8px] text-secondaryTxt font-bold uppercase block tracking-wider">Unit Price (₹)</span>
+                              <span className="text-[8px] text-secondaryTxt font-bold uppercase block tracking-wider">Price (₹)</span>
                               <input
                                 type="number"
                                 min="0"
                                 value={item.unitPrice}
                                 onChange={(e) => handleUpdateCartItemPrice(item.cartId, Number(e.target.value))}
-                                className="w-full bg-whiteBg border border-borderCol rounded-lg text-xs py-1 px-1.5 text-primaryTxt font-bold"
+                                className="w-full bg-whiteBg border border-borderCol rounded-lg text-[10px] py-1 px-1 text-primaryTxt font-bold"
+                              />
+                            </div>
+
+                            {/* Discount Input Box */}
+                            <div className="space-y-0.5">
+                              <span className="text-[8px] text-secondaryTxt font-bold uppercase block tracking-wider">Disc (₹)</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={item.discount || 0}
+                                onChange={(e) => handleUpdateCartItemDiscount(item.cartId, Number(e.target.value))}
+                                className="w-full bg-whiteBg border border-borderCol rounded-lg text-[10px] py-1 px-1 text-primaryTxt font-bold"
                               />
                             </div>
 
                             {/* Qty incrementors */}
                             <div className="space-y-0.5">
-                              <span className="text-[8px] text-secondaryTxt font-bold uppercase block tracking-wider">Quantity</span>
+                              <span className="text-[8px] text-secondaryTxt font-bold uppercase block tracking-wider">Qty</span>
                               <div className="flex items-center bg-whiteBg border border-borderCol rounded-lg overflow-hidden h-[26px]">
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateCartItemQuantity(item.cartId, item.quantity - 1)}
-                                  className="px-1.5 text-secondaryTxt hover:text-primaryTxt"
+                                  className="px-1 text-secondaryTxt hover:text-primaryTxt"
                                 >
                                   <FaMinus className="text-[8px]" />
                                 </button>
@@ -478,12 +519,12 @@ const BillingScreen = () => {
                                   min="1"
                                   value={item.quantity}
                                   onChange={(e) => handleUpdateCartItemQuantity(item.cartId, parseInt(e.target.value) || 1)}
-                                  className="w-full bg-transparent border-0 text-center text-xs py-0.5 font-bold focus:ring-0 focus:outline-none text-primaryTxt"
+                                  className="w-full bg-transparent border-0 text-center text-[10px] py-0.5 font-bold focus:ring-0 focus:outline-none text-primaryTxt"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateCartItemQuantity(item.cartId, item.quantity + 1)}
-                                  className="px-1.5 text-secondaryTxt hover:text-primaryTxt"
+                                  className="px-1 text-secondaryTxt hover:text-primaryTxt"
                                 >
                                   <FaPlus className="text-[8px]" />
                                 </button>
@@ -496,7 +537,7 @@ const BillingScreen = () => {
                           <div className="flex flex-col justify-end items-end text-right sm:col-span-1">
                             <span className="text-[8px] text-secondaryTxt font-bold uppercase tracking-wider block">Line Total</span>
                             <span className="text-xs font-black text-primaryTxt">
-                              ₹{(item.unitPrice * item.quantity).toLocaleString('en-IN')}
+                              ₹{((item.unitPrice * item.quantity) - (item.discount || 0)).toLocaleString('en-IN')}
                             </span>
                           </div>
                         </div>
@@ -565,11 +606,10 @@ const BillingScreen = () => {
                       key={mode}
                       type="button"
                       onClick={() => setPaymentMode(mode)}
-                      className={`py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
-                        paymentMode === mode
+                      className={`py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${paymentMode === mode
                           ? 'bg-emeraldGreen text-whiteBg shadow-md shadow-emeraldGreen/10'
                           : 'text-secondaryTxt bg-whiteBg hover:bg-lightgraySec border border-borderCol'
-                      }`}
+                        }`}
                     >
                       {mode}
                     </button>
@@ -581,11 +621,10 @@ const BillingScreen = () => {
               <button
                 type="submit"
                 disabled={cart.length === 0}
-                className={`w-full py-3 rounded-2xl font-black text-sm transition-all duration-200 flex items-center justify-center space-x-2 ${
-                  cart.length > 0
+                className={`w-full py-3 rounded-2xl font-black text-sm transition-all duration-200 flex items-center justify-center space-x-2 ${cart.length > 0
                     ? 'bg-emeraldGreen hover:bg-emeraldGreenHover text-whiteBg shadow-lg shadow-emeraldGreen/15'
                     : 'bg-lightgraySec text-mutedTxt cursor-not-allowed border border-borderCol'
-                }`}
+                  }`}
               >
                 <FaCheckCircle className="text-base" />
                 <span>RECORD SALE</span>
@@ -612,6 +651,7 @@ const BillingScreen = () => {
                 <th className="py-3 px-3">Category</th>
                 <th className="py-3 px-3 text-center">Qty</th>
                 <th className="py-3 px-3 text-right">Unit Price</th>
+                <th className="py-3 px-3 text-right">Discount</th>
                 <th className="py-3 px-3 text-right">Amount</th>
                 <th className="py-3 px-3 text-center">Payment</th>
                 <th className="py-3 px-4">Customer Details</th>
@@ -633,16 +673,16 @@ const BillingScreen = () => {
                       )}
                     </td>
                     <td className="py-3 px-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                        sale.category === 'Supplement'
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${sale.category === 'Supplement'
                           ? 'bg-purple-50 text-purple-650'
                           : 'bg-emerald-50 text-emeraldGreen'
-                      }`}>
+                        }`}>
                         {sale.category}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-center font-bold text-primaryTxt">{sale.quantity}</td>
                     <td className="py-3 px-3 text-right font-medium">₹{sale.unitPrice}</td>
+                    <td className="py-3 px-3 text-right font-medium text-red-500">₹{sale.discount || 0}</td>
                     <td className="py-3 px-3 text-right font-bold text-primaryTxt">₹{sale.totalAmount}</td>
                     <td className="py-3 px-3 text-center">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-whiteBg border border-borderCol text-secondaryTxt">
@@ -708,7 +748,7 @@ const BillingScreen = () => {
             >
               <FaTimes />
             </button>
-            
+
             <h4 className="text-base font-extrabold text-primaryTxt border-b border-borderCol pb-3 mb-4">
               Edit Transaction Record
             </h4>
@@ -755,18 +795,32 @@ const BillingScreen = () => {
                 </div>
               </div>
 
-              {/* Unit Price */}
-              <div className="space-y-1">
-                <label className="text-[10px] text-secondaryTxt font-semibold uppercase tracking-wider">Unit Price (₹)</label>
-                <input
-                  type="number"
-                  value={editingSale.unitPrice}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setEditingSale(prev => ({ ...prev, unitPrice: val }));
-                  }}
-                  className="w-full bg-whiteBg border border-borderCol rounded-xl text-xs py-2 px-3 text-primaryTxt font-bold focus:border-emeraldGreen"
-                />
+              {/* Unit Price & Discount side by side */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-secondaryTxt font-semibold uppercase tracking-wider">Unit Price (₹)</label>
+                  <input
+                    type="number"
+                    value={editingSale.unitPrice}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setEditingSale(prev => ({ ...prev, unitPrice: val }));
+                    }}
+                    className="w-full bg-whiteBg border border-borderCol rounded-xl text-xs py-2 px-3 text-primaryTxt font-bold focus:border-emeraldGreen"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-secondaryTxt font-semibold uppercase tracking-wider">Discount (₹)</label>
+                  <input
+                    type="number"
+                    value={editingSale.discount || 0}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setEditingSale(prev => ({ ...prev, discount: val }));
+                    }}
+                    className="w-full bg-whiteBg border border-borderCol rounded-xl text-xs py-2 px-3 text-primaryTxt font-bold focus:border-emeraldGreen"
+                  />
+                </div>
               </div>
 
               {/* Customer Name */}
@@ -806,11 +860,10 @@ const BillingScreen = () => {
                       key={mode}
                       type="button"
                       onClick={() => setEditingSale(prev => ({ ...prev, paymentMode: mode }))}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
-                        editingSale.paymentMode === mode
+                      className={`py-2 rounded-xl text-xs font-bold transition-all duration-200 ${editingSale.paymentMode === mode
                           ? 'bg-emeraldGreen text-whiteBg shadow-md'
                           : 'text-secondaryTxt bg-whiteBg border border-borderCol hover:bg-lightgraySec'
-                      }`}
+                        }`}
                     >
                       {mode}
                     </button>
@@ -835,6 +888,68 @@ const BillingScreen = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Calculator Toggle Button */}
+      <button
+        type="button"
+        onClick={() => setShowCalculator(!showCalculator)}
+        className="fixed bottom-20 right-6 md:bottom-6 md:right-6 z-50 bg-emeraldGreen hover:bg-emeraldGreenHover text-white p-4 rounded-full shadow-2xl transition-all duration-200 hover:scale-105 border border-emerald-400"
+        title="Open Calculator"
+      >
+        <FaCalculator className="text-xl" />
+      </button>
+
+      {/* Calculator Widget Card */}
+      {showCalculator && (
+        <div className="fixed bottom-36 right-6 md:bottom-22 md:right-6 z-50 bg-darknavy/95 border border-slate-800 rounded-3xl p-4 shadow-2xl w-64 text-white animate-scaleIn glass">
+          <div className="flex justify-between items-center mb-2 pb-1 border-b border-slate-800">
+            <span className="text-xs font-bold text-emeraldGreen">Quick POS Calculator</span>
+            <button
+              type="button"
+              onClick={() => setShowCalculator(false)}
+              className="text-xs text-slate-400 hover:text-white"
+            >
+              Close
+            </button>
+          </div>
+          {/* Display Screen */}
+          <div className="bg-slate-900/90 border border-slate-850 p-2.5 rounded-2xl mb-3 text-right">
+            <div className="text-[10px] text-slate-400 font-bold min-h-[14px] overflow-hidden whitespace-nowrap overflow-ellipsis">{calcExpression || '0'}</div>
+            <div className="text-lg font-black text-emeraldGreen min-h-[28px] overflow-hidden whitespace-nowrap overflow-ellipsis">{calcResult || '0'}</div>
+          </div>
+          {/* Grid of buttons */}
+          <div className="grid grid-cols-4 gap-1.5 text-xs font-extrabold">
+            {[
+              'C', '⌫', '.', '/',
+              '7', '8', '9', '*',
+              '4', '5', '6', '-',
+              '1', '2', '3', '+',
+              '0', '(', ')', '='
+            ].map((btn) => {
+              const isOperator = ['/', '*', '-', '+', '='].includes(btn);
+              const isClear = ['C', '⌫'].includes(btn);
+              return (
+                <button
+                  key={btn}
+                  type="button"
+                  onClick={() => handleCalcButtonClick(btn)}
+                  className={`p-2.5 rounded-xl transition-all ${
+                    btn === '='
+                      ? 'bg-emeraldGreen text-darknavy hover:bg-emeraldGreenHover font-black text-sm'
+                      : isOperator
+                      ? 'bg-slate-800 hover:bg-slate-700 text-emeraldGreen'
+                      : isClear
+                      ? 'bg-slate-850 hover:bg-slate-800 text-red-400'
+                      : 'bg-slate-900 border border-slate-850 hover:bg-slate-800 text-white'
+                  }`}
+                >
+                  {btn}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

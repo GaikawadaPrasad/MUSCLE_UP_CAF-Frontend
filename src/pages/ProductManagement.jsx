@@ -4,7 +4,7 @@ import { FaPlus, FaTrash, FaEdit, FaSearch, FaCheck, FaTimes, FaToggleOn, FaTogg
 import toast from 'react-hot-toast';
 
 const ProductManagement = () => {
-  const { products, addProduct, updateProduct, deleteProduct } = useApp();
+  const { products, addProduct, updateProduct, deleteProduct, user } = useApp();
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -177,13 +177,15 @@ const ProductManagement = () => {
           <h2 className="text-xl font-extrabold text-primaryTxt md:text-2xl">Products Management</h2>
           <p className="text-xs text-secondaryTxt">Add, edit, or configure food items and gym supplement configurations.</p>
         </div>
-        <button
-          onClick={handleOpenAddModal}
-          className="px-5 py-2.5 bg-emeraldGreen hover:bg-emeraldGreenHover text-whiteBg text-xs font-black rounded-xl shadow-lg shadow-emeraldGreen/10 flex items-center justify-center space-x-2 transition-all duration-200"
-        >
-          <FaPlus />
-          <span>ADD NEW PRODUCT</span>
-        </button>
+        {user?.role === 'admin' && (
+          <button
+            onClick={handleOpenAddModal}
+            className="px-5 py-2.5 bg-emeraldGreen hover:bg-emeraldGreenHover text-whiteBg text-xs font-black rounded-xl shadow-lg shadow-emeraldGreen/10 flex items-center justify-center space-x-2 transition-all duration-200"
+          >
+            <FaPlus />
+            <span>ADD NEW PRODUCT</span>
+          </button>
+        )}
       </div>
 
       {/* Filters & Search Row */}
@@ -231,7 +233,7 @@ const ProductManagement = () => {
                 <th className="py-3.5 px-4">Base Price / Starting Price</th>
                 <th className="py-3.5 px-4">Description</th>
                 <th className="py-3.5 px-3 text-center">Status</th>
-                <th className="py-3.5 px-3 text-center">Actions</th>
+                {user?.role === 'admin' && <th className="py-3.5 px-3 text-center">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-borderCol/60 text-primaryTxt">
@@ -276,38 +278,48 @@ const ProductManagement = () => {
                       {p.description || <span className="text-mutedTxt italic">No description</span>}
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <button
-                        onClick={() => handleToggleActive(p)}
-                        className={`text-lg transition-colors duration-200 inline-flex items-center justify-center ${
-                          p.active ? 'text-emeraldGreen' : 'text-slate-400'
-                        }`}
-                        title={p.active ? 'Active (Click to disable)' : 'Inactive (Click to enable)'}
-                      >
-                        {p.active ? <FaToggleOn className="text-2xl" /> : <FaToggleOff className="text-2xl" />}
-                      </button>
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <div className="flex items-center justify-center space-x-1.5">
+                      {user?.role === 'admin' ? (
                         <button
-                          onClick={() => handleOpenEditModal(p)}
-                          className="p-2 bg-lightgraySec hover:bg-emeraldGreen hover:text-whiteBg rounded-xl text-secondaryTxt transition-colors border border-borderCol/40"
-                          title="Edit"
+                          onClick={() => handleToggleActive(p)}
+                          className={`text-lg transition-colors duration-200 inline-flex items-center justify-center ${
+                            p.active ? 'text-emeraldGreen' : 'text-slate-400'
+                          }`}
+                          title={p.active ? 'Active (Click to disable)' : 'Inactive (Click to enable)'}
                         >
-                          <FaEdit className="text-xs" />
+                          {p.active ? <FaToggleOn className="text-2xl" /> : <FaToggleOff className="text-2xl" />}
                         </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Delete product "${p.name}"? This cannot be undone.`)) {
-                              deleteProduct(p._id);
-                            }
-                          }}
-                          className="p-2 bg-lightgraySec hover:bg-red-500 hover:text-white rounded-xl text-secondaryTxt transition-colors border border-borderCol/40"
-                          title="Delete"
-                        >
-                          <FaTrash className="text-xs" />
-                        </button>
-                      </div>
+                      ) : (
+                        <span className={`font-bold px-2 py-0.5 rounded-md text-[10px] ${
+                          p.active ? 'bg-emerald-50 text-emeraldGreen border border-emerald-250/20' : 'bg-slate-105 text-slate-400 border border-slate-200/50'
+                        }`}>
+                          {p.active ? 'Active' : 'Inactive'}
+                        </span>
+                      )}
                     </td>
+                    {user?.role === 'admin' && (
+                      <td className="py-3 px-3 text-center">
+                        <div className="flex items-center justify-center space-x-1.5">
+                          <button
+                            onClick={() => handleOpenEditModal(p)}
+                            className="p-2 bg-lightgraySec hover:bg-emeraldGreen hover:text-whiteBg rounded-xl text-secondaryTxt transition-colors border border-borderCol/40"
+                            title="Edit"
+                          >
+                            <FaEdit className="text-xs" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Delete product "${p.name}"? This cannot be undone.`)) {
+                                deleteProduct(p._id);
+                              }
+                            }}
+                            className="p-2 bg-lightgraySec hover:bg-red-500 hover:text-white rounded-xl text-secondaryTxt transition-colors border border-borderCol/40"
+                            title="Delete"
+                          >
+                            <FaTrash className="text-xs" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (
