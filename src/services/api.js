@@ -5,7 +5,7 @@ import axios from 'axios';
 const API_BASE_URL = typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:5050/api'
-  : 'https://muscleup-cafe.onrender.com/api';
+  : 'https://muscleupcafe-backend.onrender.com/';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
